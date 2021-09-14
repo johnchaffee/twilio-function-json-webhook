@@ -22,10 +22,10 @@ exports.handler = async function (context, event, callback) {
       return callback(null);
     }
 
-    // No Body, must be a SEND|PROGRESS message
-    // Fetch the message body via API or set it to ''
+    // No Body, must be a SEND|PROGRESS event
+    // TODO Fetch the message body via API or set it to ''
     if (event.Body === undefined) {
-      console.log("BODY IS EMPTY");
+      console.log("BODY IS EMPTY, SET TO ''");
       event.Body = "";
     }
 
@@ -45,23 +45,27 @@ exports.handler = async function (context, event, callback) {
       // Format zwEvent as SEND|PROGRESS|RECEIVE event
       console.log("SEND|PROGRESS|RECEIVE EVENT");
 
-      // Incoming messages map to RECEIVE with default type, dateDelivered, statusCode
-      let messageType = "MO";
+      // Set default variables
+      let messageType = "ZO";
+      let dateCreated = new Date().toISOString().slice(0, -5) + "Z";
       let dateDelivered = null;
+      let read = true;
+      let address = "ptn:/" + event.To;
       let statusCode = 0;
 
-      // TODO map the SmsStatus string to Zipwhip statusCode
-      if (event.SmsStatus.match(/^(accepted|queued|sending|sent)$/i)) {
-        messageType = "ZO";
+      // Map SmsStatus string to Zipwhip statusCode
+      if (event.SmsStatus === "received") {
+        messageType = "MO";
+        read = false;
+        address = "ptn:/" + event.From;
+        statusCode = 4;
+      } else if (event.SmsStatus.match(/^(accepted|queued|sending|sent)$/i)) {
         statusCode = 1;
-      } else if (
-        event.SmsStatus.match(
-          /^(delivery_unkown|delivered|undelivered|failed)$/i
-        )
-      ) {
-        messageType = "ZO";
+      } else if (event.SmsStatus === "delivered") {
         dateDelivered = new Date().toISOString().slice(0, -5) + "Z";
         statusCode = 4;
+      } else if (event.SmsStatus.match(/^(undelivered|failed)$/i)) {
+        statusCode = 5;
       } else {
         console.log("NO MATCHING SMS STATUS, EXITING");
         return callback(null);
@@ -69,8 +73,8 @@ exports.handler = async function (context, event, callback) {
       zwEvent = {
         cc: null,
         visible: true,
-        read: false,
-        address: "ptn:/" + event.From,
+        read: read,
+        address: address,
         bcc: null,
         contactId: null,
         finalDestination: event.To,
@@ -81,13 +85,13 @@ exports.handler = async function (context, event, callback) {
         messageTransport: 5,
         dateDelivered: dateDelivered,
         hasAttachment: event.NumMedia > 0 ? true : false,
-        dateCreated: new Date().toISOString().slice(0, -5) + "Z",
+        dateCreated: dateCreated,
         deleted: false,
         messageType: messageType,
-        bodySize: 14,
+        bodySize: event.Body.length,
         fingerprint: null,
         id: event.SmsSid,
-        dateRead: new Date().toISOString().slice(0, -5) + "Z",
+        dateRead: null,
         finalSource: event.From,
         statusCode: statusCode,
         bodySize: event.Body.length,
@@ -103,14 +107,13 @@ exports.handler = async function (context, event, callback) {
       // body: JSON.stringify(event),
       body: JSON.stringify(zwEvent),
     });
-
     if (res.ok) {
       // twiml.message('The SMS was successfully forwarded to your webhook.');
       // return callback(null, twiml);
       return callback(null);
+    } else {
+      return callback(res.statusText);
     }
-
-    return callback(res.statusText);
   } catch (error) {
     return callback(error);
   }
