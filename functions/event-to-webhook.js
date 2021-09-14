@@ -48,6 +48,7 @@ exports.handler = async function (context, event, callback) {
       // Set default variables
       let messageType = "ZO";
       let dateCreated = new Date().toISOString().slice(0, -5) + "Z";
+      let dateRead = new Date().toISOString().slice(0, -5) + "Z";
       let dateDelivered = null;
       let read = true;
       let address = "ptn:/" + event.To;
@@ -57,6 +58,7 @@ exports.handler = async function (context, event, callback) {
       if (event.SmsStatus === "received") {
         messageType = "MO";
         read = false;
+        dateRead = null;
         address = "ptn:/" + event.From;
         statusCode = 4;
       } else if (event.SmsStatus.match(/^(accepted|queued|sending|sent)$/i)) {
@@ -91,7 +93,7 @@ exports.handler = async function (context, event, callback) {
         bodySize: event.Body.length,
         fingerprint: null,
         id: event.SmsSid,
-        dateRead: null,
+        dateRead: dateRead,
         finalSource: event.From,
         statusCode: statusCode,
         bodySize: event.Body.length,
