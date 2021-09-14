@@ -7,24 +7,30 @@ exports.handler = async function (context, event, callback) {
     console.log(context);
     console.log(event);
 
+    // Create Zipwhip event object
+    let zwEvent = {};
+
     // Object payload is empty, exit
     if (Object.keys(event).length === 0) {
-      console.log("EVENT OBJECT IS EMPTY");
+      console.log("EVENT OBJECT IS EMPTY, EXITING");
       return callback(null);
     }
 
-    // Translate Twilio event properties to Zipwhip event properties
-    let zwEvent = {};
+    // If SmsStatus is empty, exit
+    if (event.SmsStatus === undefined) {
+      console.log("SMS STATUS IS EMPTY, EXITING");
+      return callback(null);
+    }
 
-    // No Body, it must be SEND|PROGRESS message
+    // No Body, must be a SEND|PROGRESS message
     // Fetch the message body via API or set it to ''
     if (event.Body === undefined) {
       console.log("BODY IS EMPTY");
       event.Body = "";
     }
 
-    // Body is STOP|UNSTOP|STOPALL
-    // Format zwEvent as OPTOUT event
+    // Body is START|STOP|UNSTOP|STOPALL
+    // Format zwEvent as optout event
     if (event.Body.match(/^(start|stop|stopall|unstop)$/i)) {
       console.log("OPTOUT EVENT");
       zwEvent = {
@@ -38,6 +44,28 @@ exports.handler = async function (context, event, callback) {
     } else {
       // Format zwEvent as SEND|PROGRESS|RECEIVE event
       console.log("SEND|PROGRESS|RECEIVE EVENT");
+
+      // Incoming messages map to RECEIVE with default type, dateDelivered, statusCode
+      let messageType = "MO";
+      let dateDelivered = null;
+      let statusCode = 0;
+
+      // TODO map the SmsStatus string to Zipwhip statusCode
+      if (event.SmsStatus.match(/^(accepted|queued|sending|sent)$/i)) {
+        messageType = "ZO";
+        statusCode = 1;
+      } else if (
+        event.SmsStatus.match(
+          /^(delivery_unkown|delivered|undelivered|failed)$/i
+        )
+      ) {
+        messageType = "ZO";
+        dateDelivered = new Date().toISOString().slice(0, -5) + "Z";
+        statusCode = 4;
+      } else {
+        console.log("NO MATCHING SMS STATUS, EXITING");
+        return callback(null);
+      }
       zwEvent = {
         cc: null,
         visible: true,
@@ -51,17 +79,17 @@ exports.handler = async function (context, event, callback) {
         deviceId: null,
         dateDeleted: null,
         messageTransport: 5,
-        dateDelivered: null,
+        dateDelivered: dateDelivered,
         hasAttachment: event.NumMedia > 0 ? true : false,
         dateCreated: new Date().toISOString().slice(0, -5) + "Z",
         deleted: false,
-        messageType: "MO",
+        messageType: messageType,
         bodySize: 14,
         fingerprint: null,
         id: event.SmsSid,
-        dateRead: null,
+        dateRead: new Date().toISOString().slice(0, -5) + "Z",
         finalSource: event.From,
-        statusCode: 4,
+        statusCode: statusCode,
         bodySize: event.Body.length,
       };
     }
