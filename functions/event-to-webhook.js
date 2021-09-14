@@ -3,12 +3,15 @@ const fetch = require("node-fetch");
 exports.handler = async function (context, event, callback) {
   // const twiml = new Twilio.twiml.MessagingResponse();
 
-  const body = '';
+  if (Object.keys(event).length === 0) {
+    console.log("EVENT OBJECT IS EMPTY");
+    return callback(null);
+  }
 
   if (event.Body === undefined) {
-    // do nothing, body is already set to ''
-  } else {
-    body = event.Body;
+    // No Body, it must be an outgoing message
+    // Fetch the message body via API or set it to ''
+    event.Body = "";
   }
 
   try {
@@ -25,7 +28,7 @@ exports.handler = async function (context, event, callback) {
       contactId: null,
       finalDestination: event.To,
       scheduledDate: null,
-      body: body,
+      body: event.Body,
       deviceId: null,
       dateDeleted: null,
       messageTransport: 5,
@@ -40,7 +43,7 @@ exports.handler = async function (context, event, callback) {
       dateRead: null,
       finalSource: event.From,
       statusCode: 4,
-      bodySize: body.length,
+      bodySize: event.Body.length,
     };
 
     // Send Zipwhip formatted webhook
