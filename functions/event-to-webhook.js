@@ -33,7 +33,7 @@ exports.handler = async function (context, event, callback) {
       "dateRead": null,
       "finalSource": event.From,
       "statusCode": 4,
-      "bodySize": event.Body.length,
+      "bodySize": event.Body.length ||= 0,
     };
 
     // Send Zipwhip formatted webhook
