@@ -25,7 +25,7 @@ exports.handler = async function (context, event, callback) {
 
     // Body is STOP|UNSTOP|STOPALL
     // Format zwEvent as OPTOUT event
-    if (event.Body.match(/^(stop|stopall|unstop)$/i)) {
+    if (event.Body.match(/^(start|stop|stopall|unstop)$/i)) {
       console.log("OPTOUT EVENT");
       zwEvent = {
         messageBody: event.Body,
