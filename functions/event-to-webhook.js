@@ -23,7 +23,6 @@ exports.handler = async function (context, event, callback) {
     }
 
     // No Body, must be a SEND|PROGRESS event
-    // TODO Fetch the message body via API or set it to ''
     if (event.Body === undefined) {
       console.log("BODY IS EMPTY, SET TO ''");
       event.Body = "";
