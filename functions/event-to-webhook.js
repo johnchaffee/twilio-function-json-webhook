@@ -1,4 +1,5 @@
 const fetch = require("node-fetch");
+const CRC32 = require("crc-32");
 
 exports.handler = async function (context, event, callback) {
   // const twiml = new Twilio.twiml.MessagingResponse();
@@ -50,7 +51,10 @@ exports.handler = async function (context, event, callback) {
       let dateRead = new Date().toISOString().slice(0, -5) + "Z";
       let dateDelivered = null;
       let read = true;
-      let address = "ptn:/" + event.To;
+      let address = `ptn:/${event.To}`;
+      console.log(`address: ${address}`);
+      let fingerprint = CRC32.str(`AD:${address},CC:,BCC:`).toString();
+      console.log(`fingerprint: ${fingerprint}`);
       let statusCode = 0;
 
       // Map SmsStatus string to Zipwhip statusCode
@@ -58,7 +62,10 @@ exports.handler = async function (context, event, callback) {
         messageType = "MO";
         read = false;
         dateRead = null;
-        address = "ptn:/" + event.From;
+        address = `ptn:/${event.From}`;
+        console.log(`CHANGED address: ${address}`);
+        fingerprint = CRC32.str(`AD:${address},CC:,BCC:`).toString();
+        console.log(`CHANGED fingerprint: ${fingerprint}`);
         statusCode = 4;
       } else if (event.SmsStatus.match(/^(accepted|queued|sending|sent)$/i)) {
         statusCode = 1;
@@ -90,7 +97,7 @@ exports.handler = async function (context, event, callback) {
         deleted: false,
         messageType: messageType,
         bodySize: event.Body.length,
-        fingerprint: null,
+        fingerprint: fingerprint,
         id: event.SmsSid,
         dateRead: dateRead,
         finalSource: event.From,
@@ -99,15 +106,23 @@ exports.handler = async function (context, event, callback) {
       };
     }
 
-    // Send Zipwhip formatted webhook
-    const res = await fetch(context.WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // body: JSON.stringify(event),
-      body: JSON.stringify(zwEvent),
-    });
+    console.log("FOR LOOP:");
+    let res = {};
+    const endpoints = context.WEBHOOK_URLS.split(",");
+    for (let index = 0; index < endpoints.length; index++) {
+      const endpoint = endpoints[index];
+      console.log(`endpoint`, endpoint);
+
+      // Send Zipwhip formatted webhook
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // body: JSON.stringify(event),
+        body: JSON.stringify(zwEvent),
+      });
+    }
     if (res.ok) {
       // twiml.message('The SMS was successfully forwarded to your webhook.');
       // return callback(null, twiml);
