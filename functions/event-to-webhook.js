@@ -103,8 +103,9 @@ exports.handler = async function (context, event, callback) {
         bodySize: event.Body.length,
       };
     }
+    
     // Send webhook to each endpoint in WEBHOOK_URLS array
-    console.log("FOR LOOP:");
+    // Using a for loop because it does not make a callback, unlike forEach
     let res = {};
     const endpoints = context.WEBHOOK_URLS.split(",");
     for (let index = 0; index < endpoints.length; index++) {
