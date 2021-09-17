@@ -44,7 +44,6 @@ exports.handler = async function (context, event, callback) {
     } else {
       // Format zwEvent as SEND|PROGRESS|RECEIVE event
       console.log("SEND|PROGRESS|RECEIVE EVENT");
-
       // Set default variables
       let messageType = "ZO";
       let dateCreated = new Date().toISOString().slice(0, -5) + "Z";
@@ -56,7 +55,6 @@ exports.handler = async function (context, event, callback) {
       let fingerprint = CRC32.str(`AD:${address},CC:,BCC:`).toString();
       console.log(`fingerprint: ${fingerprint}`);
       let statusCode = 0;
-
       // Map SmsStatus string to Zipwhip statusCode
       if (event.SmsStatus === "received") {
         messageType = "MO";
@@ -105,7 +103,7 @@ exports.handler = async function (context, event, callback) {
         bodySize: event.Body.length,
       };
     }
-
+    // Send webhook to each endpoint in WEBHOOK_URLS array
     console.log("FOR LOOP:");
     let res = {};
     const endpoints = context.WEBHOOK_URLS.split(",");
